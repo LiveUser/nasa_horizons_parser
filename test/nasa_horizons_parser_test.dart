@@ -43,6 +43,7 @@ void main() {
     print("Solar Constant Mean (W/m^2): ${majorBodyEphemerisData.solarConstantMean}");
     print("Max Planetary IR Mean (W/m^2): ${majorBodyEphemerisData.maxPlanetaryIR}");
     print("Min Planetary IR Mean (W/m^2): ${majorBodyEphemerisData.minPlanetaryIR}");
+    print("Ephemeris Data: ${majorBodyEphemerisData.spatialTemporalData}");
     print("------------------------------------");
   });
 }

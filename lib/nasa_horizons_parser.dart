@@ -1,5 +1,6 @@
+
 class MajorBody{
-  MajorBody({
+  new({
     required this.id,
     required this.name,
     required this.designation,
@@ -10,37 +11,56 @@ class MajorBody{
   final String designation;
   final String iau;
 }
+class Vector3{
+  new({
+    required this.x,
+    required this.y,
+    required this.z,
+  });
+  final double x;
+  final double y;
+  final double z;
+}
+class SpatialTemporalData{
+  new({
+    required this.position,
+    required this.velocity,
+  });
+  final Vector3 position;
+  final Vector3 velocity;
+}
 class MajorBodyEphemerisData {
-  MajorBodyEphemerisData({
-    this.meanRadius,
-    this.density,
-    this.mass,
-    this.volume,
-    this.siderealRotPeriodDays,
-    this.siderealRotRate,
-    this.meanSolarDay,
-    this.equatorialGravity,
-    this.momentOfInertia,
-    this.coreRadius,
-    this.geometricAlbedo,
-    this.potentialLoveK2,
-    this.gm,
-    this.equatorialRadius,
-    this.gmSigma,
-    this.massRatioSunToBody,
-    this.atmosPressure,
-    this.maxAngularDiam,
-    this.meanTemperature,
-    this.visualMagV10,
-    this.obliquityToOrbit,
-    this.hillsSphereRad,
-    this.siderealOrbPeriodYears,
-    this.orbitSpeed,
-    this.siderealOrbPeriodDays,
-    this.escapeSpeed,
-    this.solarConstantMean,
-    this.maxPlanetaryIR,
-    this.minPlanetaryIR,
+  new({
+    required this.meanRadius,
+    required this.density,
+    required this.mass,
+    required this.volume,
+    required this.siderealRotPeriodDays,
+    required this.siderealRotRate,
+    required this.meanSolarDay,
+    required this.equatorialGravity,
+    required this.momentOfInertia,
+    required this.coreRadius,
+    required this.geometricAlbedo,
+    required this.potentialLoveK2,
+    required this.gm,
+    required this.equatorialRadius,
+    required this.gmSigma,
+    required this.massRatioSunToBody,
+    required this.atmosPressure,
+    required this.maxAngularDiam,
+    required this.meanTemperature,
+    required this.visualMagV10,
+    required this.obliquityToOrbit,
+    required this.hillsSphereRad,
+    required this.siderealOrbPeriodYears,
+    required this.orbitSpeed,
+    required this.siderealOrbPeriodDays,
+    required this.escapeSpeed,
+    required this.solarConstantMean,
+    required this.maxPlanetaryIR,
+    required this.minPlanetaryIR,
+    required this.spatialTemporalData,
   });
 
   final double? meanRadius;
@@ -72,6 +92,7 @@ class MajorBodyEphemerisData {
   final double? solarConstantMean;
   final double? maxPlanetaryIR;
   final double? minPlanetaryIR;
+  final Map<DateTime,SpatialTemporalData> spatialTemporalData;
 }
 List<MajorBody> parseMajorBodiesList({
   required String nasaHorizonsApiResponse,
@@ -229,6 +250,11 @@ MajorBodyEphemerisData parseMajorBodyEphemeris({
   RegExp minPlanetaryIRRegExp = RegExp(r'Minimum\s*Planetary\s*IR\s*\(W/m\^2\)\s+\d+\s+\d+\s+' + numPattern, caseSensitive: false);
   double? minPlanetaryIR = parseMatch(minPlanetaryIRRegExp);
 
+  //TODO: Parse ephemeris data
+  Map<DateTime,SpatialTemporalData> spatialTemporalData = {};
+  String ephemerisData = nasaHorizonsApiResponse.substring(nasaHorizonsApiResponse.indexOf("\$\$SOE"), nasaHorizonsApiResponse.indexOf("\n\$\$EOE"));
+  ephemerisData = ephemerisData.substring(ephemerisData.indexOf("\n"));
+  print(ephemerisData);
   return MajorBodyEphemerisData(
     meanRadius: meanRadius,
     density: density,
@@ -259,5 +285,6 @@ MajorBodyEphemerisData parseMajorBodyEphemeris({
     solarConstantMean: solarConstantMean,
     maxPlanetaryIR: maxPlanetaryIR,
     minPlanetaryIR: minPlanetaryIR,
+    spatialTemporalData: spatialTemporalData,
   );
 }
