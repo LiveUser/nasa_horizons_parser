@@ -123,59 +123,76 @@ List<MajorBody> parseMajorBodiesList({
 MajorBodyEphemerisData parseMajorBodyEphemeris({
   required String nasaHorizonsApiResponse,
 }) {
-  // Helper to safely parse a regex match into a double
-  double? parseMatch(RegExp regExp) {
+  // Helper to safely parse a regex match into a double and apply key scale exponent if present
+  double? parseScaledMatch(RegExp regExp) {
     RegExpMatch? match = regExp.firstMatch(nasaHorizonsApiResponse);
-    if (match != null && match.group(1) != null) {
-      return double.tryParse(match.group(1)!);
+    if (match != null) {
+      double scaleFactor = 1.0;
+      
+      // Group 1 captures integer exponent inside 10^N if present
+      if (match.groupCount >= 1 && match.group(1) != null && match.group(1)!.isNotEmpty) {
+        int? exponent = int.tryParse(match.group(1)!);
+        if (exponent != null) {
+          scaleFactor = double.parse('1e$exponent');
+        }
+      }
+
+      // Group 2 captures the target numeric value
+      if (match.groupCount >= 2 && match.group(2) != null) {
+        double? baseValue = double.tryParse(match.group(2)!);
+        if (baseValue != null) {
+          return baseValue * scaleFactor;
+        }
+      }
     }
     return null;
   }
 
-  // Generic pattern for numbers (supports negative numbers, floats, approximate '~', and scientific notation)
+  // Base regex pattern matching standard floats, scientific notation, and optional approximation prefix
   const String numPattern = r'[~+-]?\s*([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)';
+  
+  // Scale pattern specifically matching x10^23, *10^10, or (x10^10 ...)
+  const String scalePattern = r'(?:(?:\(?[x*]?10\^(\d+)\)?[^\n=]*=)|=)';
 
   // Physical parameters
-  double? meanRadius = parseMatch(RegExp(r'Vol\.\s*Mean\s*Radius\s*\(km\)\s*=\s*' + numPattern, caseSensitive: false));
-  double? density = parseMatch(RegExp(r'Density\s*\(g/cm\^3\)\s*=\s*' + numPattern, caseSensitive: false));
-  double? mass = parseMatch(RegExp(r'Mass\s*x10\^\d+\s*\(kg\)\s*=\s*' + numPattern, caseSensitive: false));
-  double? volume = parseMatch(RegExp(r'Volume\s*\(x10\^\d+\s*km\^3\)\s*=\s*' + numPattern, caseSensitive: false));
-  double? siderealRotPeriodDays = parseMatch(RegExp(r'Sidereal\s*rot\.\s*period\s*=\s*' + numPattern, caseSensitive: false));
-  double? siderealRotRate = parseMatch(RegExp(r'Sid\.\s*Rot\.\s*Rate\s*\(rad/s\)=\s*' + numPattern, caseSensitive: false));
-  double? meanSolarDay = parseMatch(RegExp(r'Mean\s*solar\s*day\s*=\s*' + numPattern, caseSensitive: false));
-  double? equatorialGravity = parseMatch(RegExp(r'Equ\.\s*gravity\s*m/s\^2\s*=\s*' + numPattern, caseSensitive: false));
-  double? momentOfInertia = parseMatch(RegExp(r'Mom\.\s*of\s*Inertia\s*=\s*' + numPattern, caseSensitive: false));
-  double? coreRadius = parseMatch(RegExp(r'Core\s*radius\s*\(km\)\s*=\s*' + numPattern, caseSensitive: false));
-  double? geometricAlbedo = parseMatch(RegExp(r'Geometric\s*Albedo\s*=\s*' + numPattern, caseSensitive: false));
-  double? potentialLoveK2 = parseMatch(RegExp(r'Potential\s*Love\s*#\s*k2\s*=\s*' + numPattern, caseSensitive: false));
-  double? gm = parseMatch(RegExp(r'GM\s*\(km\^3/s\^2\)\s*=\s*' + numPattern, caseSensitive: false));
-  double? equatorialRadius = parseMatch(RegExp(r'Equatorial\s*Radius,\s*Re\s*=\s*' + numPattern, caseSensitive: false));
-  double? gmSigma = parseMatch(RegExp(r'GM\s*1-sigma\s*\(km\^3/s\^2\)\s*=\s*' + numPattern, caseSensitive: false));
-  double? massRatioSunToBody = parseMatch(RegExp(r'Mass\s*ratio\s*\(Sun/[^)]+\)\s*=\s*' + numPattern, caseSensitive: false));
-  double? atmosPressure = parseMatch(RegExp(r'Atmos\.\s*pressure\s*\(bar\)\s*=\s*' + numPattern, caseSensitive: false));
-  double? maxAngularDiam = parseMatch(RegExp(r'Max\.\s*angular\s*diam\.\s*=\s*' + numPattern, caseSensitive: false));
-  double? meanTemperature = parseMatch(RegExp(r'Mean\s*Temperature\s*\(K\)\s*=\s*' + numPattern, caseSensitive: false));
-  double? visualMagV10 = parseMatch(RegExp(r'Visual\s*mag\.\s*V\(1,0\)\s*=\s*' + numPattern, caseSensitive: false));
-  double? obliquityToOrbit = parseMatch(RegExp(r'Obliquity\s*to\s*orbit\s*=\s*' + numPattern, caseSensitive: false));
-  double? hillsSphereRad = parseMatch(RegExp(r'Hill\x27s\s*sphere\s*rad\.,Rp\s*=\s*' + numPattern, caseSensitive: false));
-  double? siderealOrbPeriodYears = parseMatch(RegExp(r'Sidereal\s*orb\.\s*per\.,\s*y\s*=\s*' + numPattern, caseSensitive: false));
-  double? orbitSpeed = parseMatch(RegExp(r'Orbit\s*speed,\s*km/s\s*=\s*' + numPattern, caseSensitive: false));
-  double? siderealOrbPeriodDays = parseMatch(RegExp(r'Sidereal\s*orb\.\s*per\.,\s*d\s*=\s*' + numPattern, caseSensitive: false));
-  double? escapeSpeed = parseMatch(RegExp(r'Escape\s*speed,\s*km/s\s*=\s*' + numPattern, caseSensitive: false));
-  double? solarConstantMean = parseMatch(RegExp(r'Solar\s*Constant\s*\(W/m\^2\)\s+\d+\s+\d+\s+' + numPattern, caseSensitive: false));
-  double? maxPlanetaryIR = parseMatch(RegExp(r'Maximum\s*Planetary\s*IR\s*\(W/m\^2\)\s+\d+\s+\d+\s+' + numPattern, caseSensitive: false));
-  double? minPlanetaryIR = parseMatch(RegExp(r'Minimum\s*Planetary\s*IR\s*\(W/m\^2\)\s+\d+\s+\d+\s+' + numPattern, caseSensitive: false));
+  double? meanRadius = parseScaledMatch(RegExp(r'Vol\.\s*Mean\s*Radius\s*\(km\)\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? density = parseScaledMatch(RegExp(r'Density\s*\(g/cm\^3\)\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? mass = parseScaledMatch(RegExp(r'Mass\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? volume = parseScaledMatch(RegExp(r'Volume\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? siderealRotPeriodDays = parseScaledMatch(RegExp(r'Sidereal\s*rot\.\s*period\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? siderealRotRate = parseScaledMatch(RegExp(r'Sid\.\s*Rot\.\s*Rate\s*\(rad/s\)\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? meanSolarDay = parseScaledMatch(RegExp(r'Mean\s*solar\s*day\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? equatorialGravity = parseScaledMatch(RegExp(r'Equ\.\s*gravity\s*m/s\^2\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? momentOfInertia = parseScaledMatch(RegExp(r'Mom\.\s*of\s*Inertia\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? coreRadius = parseScaledMatch(RegExp(r'Core\s*radius\s*\(km\)\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? geometricAlbedo = parseScaledMatch(RegExp(r'Geometric\s*Albedo\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? potentialLoveK2 = parseScaledMatch(RegExp(r'Potential\s*Love\s*#\s*k2\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? gm = parseScaledMatch(RegExp(r'GM\s*\(km\^3/s\^2\)\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? equatorialRadius = parseScaledMatch(RegExp(r'Equatorial\s*Radius,\s*Re\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? gmSigma = parseScaledMatch(RegExp(r'GM\s*1-sigma\s*\(km\^3/s\^2\)\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? massRatioSunToBody = parseScaledMatch(RegExp(r'Mass\s*ratio\s*\(Sun/[^)]+\)\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? atmosPressure = parseScaledMatch(RegExp(r'Atmos\.\s*pressure\s*\(bar\)\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? maxAngularDiam = parseScaledMatch(RegExp(r'Max\.\s*angular\s*diam\.\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? meanTemperature = parseScaledMatch(RegExp(r'Mean\s*Temperature\s*\(K\)\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? visualMagV10 = parseScaledMatch(RegExp(r'Visual\s*mag\.\s*V\(1,0\)\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? obliquityToOrbit = parseScaledMatch(RegExp(r'Obliquity\s*to\s*orbit\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? hillsSphereRad = parseScaledMatch(RegExp(r'Hill\x27s\s*sphere\s*rad\.,Rp\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? siderealOrbPeriodYears = parseScaledMatch(RegExp(r'Sidereal\s*orb\.\s*per\.,\s*y\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? orbitSpeed = parseScaledMatch(RegExp(r'Orbit\s*speed,\s*km/s\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? siderealOrbPeriodDays = parseScaledMatch(RegExp(r'Sidereal\s*orb\.\s*per\.,\s*d\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? escapeSpeed = parseScaledMatch(RegExp(r'Escape\s*speed,\s*km/s\s*' + scalePattern + r'\s*' + numPattern, caseSensitive: false));
+  double? solarConstantMean = parseScaledMatch(RegExp(r'Solar\s*Constant\s*\(W/m\^2\)\s+' + scalePattern + r'?(?:\s+[^\s]+){2}\s*' + numPattern, caseSensitive: false));
+  double? maxPlanetaryIR = parseScaledMatch(RegExp(r'Maximum\s*Planetary\s*IR\s*\(W/m\^2\)\s+' + scalePattern + r'?(?:\s+[^\s]+){2}\s*' + numPattern, caseSensitive: false));
+  double? minPlanetaryIR = parseScaledMatch(RegExp(r'Minimum\s*Planetary\s*IR\s*\(W/m\^2\)\s+' + scalePattern + r'?(?:\s+[^\s]+){2}\s*' + numPattern, caseSensitive: false));
 
   // --- PARSE EPHEMERIS DATA ($$SOE to $$EOE) ---
   Map<DateTime, SpatialTemporalData> spatialTemporalData = {};
 
-  // Extract everything directly between $$SOE and $$EOE assuming fixed format
   final String ephemerisSection = nasaHorizonsApiResponse.substring(
     nasaHorizonsApiResponse.indexOf(r'$$SOE') + 5,
     nasaHorizonsApiResponse.indexOf(r'$$EOE'),
   );
 
-  // Regex matching vector block rows
   final vectorBlockRegex = RegExp(
     r'[\d\.]+\s*=\s*A\.D\.\s*([\d]{4}-[A-Za-z]{3}-[\d]{2}\s*[\d:]+\.[\d]+)\s*[A-Z]+\s*\n'
     r'\s*X\s*=\s*([^\s]+)\s+Y\s*=\s*([^\s]+)\s+Z\s*=\s*([^\s]+)\s*\n'

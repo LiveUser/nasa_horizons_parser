@@ -1,7 +1,7 @@
 name: nasa_horizons_parser
 description: A parser for NASA Horizons API request responses.
-version: 0.0.1
-# repository: https://github.com/my_org/my_repo
+version: 0.0.2
+repository: https://github.com/LiveUser/nasa_horizons_parser
 
 environment:
   sdk: ^3.13.4
